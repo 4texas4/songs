@@ -1,81 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MP3 Player</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
-    .song-list {
-      margin-bottom: 20px;
+    .container {
+      background: #fff;
+      padding: 24px 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 320px;
     }
-    .song-item {
-      margin: 10px 0;
+    h1 {
+      margin-bottom: 16px;
+    }
+    input[type="file"] {
+      margin-bottom: 12px;
     }
     audio {
-      margin-top: 10px;
       width: 100%;
+      margin: 12px 0;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .controls button {
+      padding: 8px 14px;
+      font-size: 14px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      min-width: 80px;
+    }
+    ul#playlist {
+      list-style: none;
+      padding: 0;
+      margin-top: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    ul#playlist li {
+      padding: 6px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    ul#playlist li:hover {
+      background-color: #eee;
+    }
+    ul#playlist li.active {
+      background-color: #3498db;
+      color: white;
     }
   </style>
 </head>
 <body>
-  <h1>MP3 Player</h1>
-  <div class="song-list">
-    <!-- Song items will be listed here -->
+  <div class="container">
+    <h1>MP3 Player</h1>
+    <input type="file" id="file-input" accept=".mp3" multiple webkitdirectory />
+    
+    <audio id="audio-player" controls style="display:none;">
+      <source id="audio-source" type="audio/mp3" />
+      Your browser does not support the audio element.
+    </audio>
+
+    <div class="controls">
+      <button id="prev-btn" disabled>⏮ Prev</button>
+      <button id="next-btn" disabled>⏭ Next</button>
+      <button id="shuffle-btn" disabled>🔁 Shuffle: Off</button>
+    </div>
+
+    <ul id="playlist"></ul>
   </div>
 
-  <audio id="audioPlayer" controls>
-    <source id="audioSource" type="audio/mp3">
-    Your browser does not support the audio element.
-  </audio>
-
   <script>
-    // Replace with your GitHub repository details
-    const username = 'YOUR_GITHUB_USERNAME';  // Replace with your GitHub username
-    const repo = 'YOUR_REPO_NAME';            // Replace with your GitHub repository name
-    const folder = 'songs';                   // Folder where your MP3s are stored
-    const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents/${folder}`;
+    const fileInput = document.getElementById('file-input');
+    const audioPlayer = document.getElementById('audio-player');
+    const audioSource = document.getElementById('audio-source');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const playlist = document.getElementById('playlist');
 
-    // Fetch the list of files from the GitHub API
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        const songList = document.querySelector('.song-list');
-        const songs = data.filter(file => file.name.endsWith('.mp3'));  // Filter for MP3 files
+    let songs = [];
+    let currentSongIndex = 0;
+    let isPlaying = false;
+    let isShuffle = false;
 
-        if (songs.length === 0) {
-          songList.innerHTML = '<p>No MP3 files found in the "songs/" folder.</p>';
-        } else {
-          // Create a button for each MP3 file
-          songs.forEach(song => {
-            const songItem = document.createElement('div');
-            songItem.classList.add('song-item');
+    fileInput.addEventListener('change', function (event) {
+      songs = Array.from(event.target.files).filter(file =>
+        file.type === 'audio/mp3' || file.name.toLowerCase().endsWith('.mp3')
+      );
 
-            const songButton = document.createElement('button');
-            songButton.textContent = song.name;
-            songButton.onclick = () => playSong(song.download_url);  // Use download URL to play the song
+      if (songs.length > 0) {
+        currentSongIndex = 0;
+        loadSong(currentSongIndex);
+        renderPlaylist();
+        audioPlayer.style.display = 'block';
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
+        shuffleBtn.disabled = false;
+      } else {
+        alert('Please select at least one MP3 file.');
+      }
+    });
 
-            songItem.appendChild(songButton);
-            songList.appendChild(songItem);
-          });
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching song list:', error);
-      });
-
-    // Function to play the selected song
-    function playSong(url) {
-      const audioPlayer = document.getElementById('audioPlayer');
-      const audioSource = document.getElementById('audioSource');
-
-      audioSource.src = url;  // Set the source to the MP3 file URL
-      audioPlayer.load();     // Reload the audio player
-      audioPlayer.play();     // Start playing the audio
+    function loadSong(index) {
+      const song = songs[index];
+      const url = URL.createObjectURL(song);
+      audioSource.src = url;
+      audioPlayer.load();
+      highlightPlaylistItem(index);
     }
+
+    function playCurrentSong() {
+      audioPlayer.play();
+      isPlaying = true;
+    }
+
+    function highlightPlaylistItem(index) {
+      const items = playlist.querySelectorAll('li');
+      items.forEach((item, i) => {
+        item.classList.toggle('active', i === index);
+      });
+    }
+
+    function renderPlaylist() {
+      playlist.innerHTML = '';
+      songs.forEach((song, index) => {
+        const li = document.createElement('li');
+        li.textContent = song.name;
+        li.addEventListener('click', () => {
+          currentSongIndex = index;
+          loadSong(index);
+          playCurrentSong();
+        });
+        playlist.appendChild(li);
+      });
+      highlightPlaylistItem(currentSongIndex);
+    }
+
+    function nextTrack() {
+      if (isShuffle) {
+        currentSongIndex = Math.floor(Math.random() * songs.length);
+      } else {
+        currentSongIndex = (currentSongIndex + 1) % songs.length;
+      }
+      loadSong(currentSongIndex);
+      playCurrentSong();
+    }
+
+    function prevTrack() {
+      currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+      loadSong(currentSongIndex);
+      playCurrentSong();
+    }
+
+    audioPlayer.addEventListener('ended', nextTrack);
+    nextBtn.addEventListener('click', nextTrack);
+    prevBtn.addEventListener('click', prevTrack);
+
+    shuffleBtn.addEventListener('click', () => {
+      isShuffle = !isShuffle;
+      shuffleBtn.textContent = `🔁 Shuffle: ${isShuffle ? 'On' : 'Off'}`;
+    });
   </script>
 </body>
 </html>
