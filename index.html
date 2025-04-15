@@ -82,9 +82,9 @@
     </audio>
 
     <div class="controls">
-      <button id="prev-btn" disabled>⏮ Prev</button>
-      <button id="next-btn" disabled>⏭ Next</button>
-      <button id="shuffle-btn" disabled>🔁 Shuffle: Off</button>
+      <button id="prev-btn" disabled>Prev</button>
+      <button id="next-btn" disabled>Next</button>
+      <button id="shuffle-btn" disabled>Shuffle: Off</button>
     </div>
 
     <ul id="playlist"></ul>
@@ -179,7 +179,7 @@
 
     shuffleBtn.addEventListener('click', () => {
       isShuffle = !isShuffle;
-      shuffleBtn.textContent = `🔁 Shuffle: ${isShuffle ? 'On' : 'Off'}`;
+      shuffleBtn.textContent = `Shuffle: ${isShuffle ? 'On' : 'Off'}`;
     });
   </script>
 </body>
